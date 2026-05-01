@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.calorimate.mapper.StatsMapper">
+
+    <select id="getDailyMealCalories" resultType="java.util.Map">
+        SELECT
+            meal_type AS mealType,
+            SUM(calories) AS calories
+        FROM diet_log
+        WHERE user_id = #{userId} AND log_date = #{date}
+        GROUP BY meal_type
+    </select>
+
+    <select id="getDailyNutrients" resultType="java.util.Map">
+        SELECT
+            SUM(dl.servings * f.protein) AS totalProtein,
+            SUM(dl.servings * f.fat) AS totalFat,
+            SUM(dl.servings * f.carbs) AS totalCarbs
+        FROM diet_log dl
+        LEFT JOIN food f ON dl.food_id = f.id
+        WHERE dl.user_id = #{userId} AND dl.log_date = #{date}
+    </select>
+
+    <select id="getWeeklyCalories" resultType="com.calorimate.vo.WeeklyStatsVO$DayCalories">
+        SELECT
+            log_date AS date,
+            SUM(calories) AS calories
+        FROM diet_log
+        WHERE user_id = #{userId}
+          AND log_date BETWEEN #{startDate} AND #{endDate}
+        GROUP BY log_date
+        ORDER BY log_date
+    </select>
+
+    <select id="getMonthlyCalories" resultType="com.calorimate.vo.MonthlyStatsVO$DayCalories">
+        SELECT
+            log_date AS date,
+            SUM(calories) AS calories
+        FROM diet_log
+        WHERE user_id = #{userId}
+          AND log_date BETWEEN #{startDate} AND #{endDate}
+        GROUP BY log_date
+        ORDER BY log_date
+    </select>
+
+    <select id="getDaysOnTarget" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM (
+            SELECT log_date, SUM(calories) AS total
+            FROM diet_log
+            WHERE user_id = #{userId}
+              AND log_date BETWEEN #{startDate} AND #{endDate}
+            GROUP BY log_date
+            HAVING total &lt;= #{targetCalories}
+        ) t
+    </select>
+
+    <select id="getDaysOverTarget" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM (
+            SELECT log_date, SUM(calories) AS total
+            FROM diet_log
+            WHERE user_id = #{userId}
+              AND log_date BETWEEN #{startDate} AND #{endDate}
+            GROUP BY log_date
+            HAVING total > #{targetCalories}
+        ) t
+    </select>
+
+</mapper>
