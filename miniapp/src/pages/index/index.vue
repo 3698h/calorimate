@@ -75,6 +75,29 @@
           </view>
         </view>
 
+        <view class="nutrient-card card">
+          <view class="nutrient-item">
+            <view class="nutrient-dot protein-bg" />
+            <text class="nutrient-label">蛋白质</text>
+            <text class="nutrient-value num-font">{{ totalProtein }}</text>
+            <text class="nutrient-unit">g</text>
+          </view>
+          <view class="nutrient-divider" />
+          <view class="nutrient-item">
+            <view class="nutrient-dot fat-bg" />
+            <text class="nutrient-label">脂肪</text>
+            <text class="nutrient-value num-font">{{ totalFat }}</text>
+            <text class="nutrient-unit">g</text>
+          </view>
+          <view class="nutrient-divider" />
+          <view class="nutrient-item">
+            <view class="nutrient-dot carb-bg" />
+            <text class="nutrient-label">碳水</text>
+            <text class="nutrient-value num-font">{{ totalCarbs }}</text>
+            <text class="nutrient-unit">g</text>
+          </view>
+        </view>
+
         <view class="section-header">
           <text class="section-title">今日记录</text>
           <text class="section-count" v-if="records.length > 0">{{ records.length }}条</text>
@@ -149,6 +172,9 @@ const records = ref<any[]>([])
 const isVip = ref(false)
 const useDefaultTarget = ref(false)
 const hasInitialLoad = ref(false)
+const totalProtein = ref(0)
+const totalFat = ref(0)
+const totalCarbs = ref(0)
 
 const greeting = computed(() => {
   const h = new Date().getHours()
@@ -201,10 +227,11 @@ const loadData = async () => {
   errorMsg.value = ''
   useDefaultTarget.value = false
   try {
-    const [profileRes, dietRes, dailyTargetRes] = await Promise.allSettled([
+    const [profileRes, dietRes, dailyTargetRes, statsRes] = await Promise.allSettled([
       userApi.getProfile(),
       recordApi.list(),
       userApi.getDailyTarget(),
+      recordApi.daily(),
     ])
 
     if (profileRes.status === 'fulfilled') {
@@ -215,10 +242,12 @@ const loadData = async () => {
     if (dailyTargetRes.status === 'fulfilled') {
       targetCal.value = dailyTargetRes.value.data?.targetCalories || 2000
       useDefaultTarget.value = false
+      Taro.setStorageSync('cachedTargetCalories', targetCal.value)
     } else {
-      targetCal.value = profileRes.status === 'fulfilled'
+      const cached = Taro.getStorageSync('cachedTargetCalories')
+      targetCal.value = cached || (profileRes.status === 'fulfilled'
         ? (profileRes.value.data?.targetCalories || 2000)
-        : 2000
+        : 2000)
       useDefaultTarget.value = true
     }
 
@@ -233,6 +262,12 @@ const loadData = async () => {
       })
       records.value = allRecords
       todayCal.value = dietRes.value.data?.totalCalories || 0
+    }
+
+    if (statsRes.status === 'fulfilled') {
+      totalProtein.value = statsRes.value.data?.totalProtein || 0
+      totalFat.value = statsRes.value.data?.totalFat || 0
+      totalCarbs.value = statsRes.value.data?.totalCarbs || 0
     }
 
     if (profileRes.status === 'rejected' && dietRes.status === 'rejected') {
@@ -675,6 +710,56 @@ $card-shadow: 0 2rpx 16rpx rgba(0, 0, 0, 0.04), 0 0 1rpx rgba(0, 0, 0, 0.06);
       background: #E5E5EA;
       flex-shrink: 0;
     }
+  }
+}
+
+.nutrient-card {
+  display: flex;
+  align-items: center;
+  padding: 28rpx 24rpx;
+
+  .nutrient-item {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8rpx;
+  }
+
+  .nutrient-dot {
+    width: 16rpx;
+    height: 16rpx;
+    border-radius: 50%;
+    flex-shrink: 0;
+
+    &.protein-bg { background: #FF9F0A; }
+    &.fat-bg { background: #FF453A; }
+    &.carb-bg { background: #0A84FF; }
+  }
+
+  .nutrient-label {
+    font-size: 24rpx;
+    color: $text-sub;
+    font-weight: 500;
+  }
+
+  .nutrient-value {
+    font-size: 32rpx;
+    font-weight: 700;
+    color: $text-main;
+  }
+
+  .nutrient-unit {
+    font-size: 22rpx;
+    color: $text-sub;
+    font-weight: 400;
+  }
+
+  .nutrient-divider {
+    width: 1rpx;
+    height: 48rpx;
+    background: #E5E5EA;
+    flex-shrink: 0;
   }
 }
 

@@ -12,6 +12,8 @@ public interface FoodService {
 
     void addFood(FoodDTO dto);
 
+    Food importFood(FoodDTO dto);
+
     void updateFood(Long id, FoodDTO dto);
 
     void deleteFood(Long id);

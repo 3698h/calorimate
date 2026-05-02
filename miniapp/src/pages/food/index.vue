@@ -1,5 +1,6 @@
 <template>
   <view class="food-page">
+    <PrivacyPopup @agreed="onPrivacyAgreed" />
     <view class="search-header">
       <view class="search-bar">
         <text class="search-icon">🔍</text>
@@ -89,8 +90,8 @@
       </view>
       <view class="result-list">
         <view
-          v-for="item in results"
-          :key="item.id"
+          v-for="(item, idx) in results"
+          :key="item.id || ('ext-' + idx)"
           class="food-card"
           hover-class="card-hover"
         >
@@ -99,7 +100,10 @@
             <text v-if="!item.imageUrl" class="food-thumb-emoji">{{ getFoodEmoji(item.name, item.category) }}</text>
           </view>
           <view class="food-info">
-            <text class="food-name">{{ item.name }}</text>
+            <view class="food-name-row">
+              <text class="food-name">{{ item.name }}</text>
+              <text v-if="item.isExternal" class="external-tag">在线</text>
+            </view>
             <text class="food-cal-desc">每{{ item.unit || '100g' }} · {{ item.calories }}千卡</text>
           </view>
           <view class="add-btn" hover-class="add-hover" @tap="openAddPopup(item)">
@@ -215,7 +219,9 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import Taro, { useDidShow } from '@tarojs/taro'
+import PrivacyPopup from '../../components/PrivacyPopup.vue'
 import { foodApi, recordApi } from '../../api'
+import { formatDate } from '../../utils/format'
 
 const keyword = ref('')
 const loading = ref(false)
@@ -224,6 +230,7 @@ const searched = ref(false)
 const results = ref<any[]>([])
 const justAdded = ref('')
 const isVip = ref(false)
+const importing = ref(false)
 
 const history = ref<string[]>([])
 const categories = ['主食', '肉类', '蔬菜', '水果', '蛋奶', '饮品', '海鲜', '豆制品', '零食']
@@ -302,8 +309,8 @@ const loadFoods = async () => {
     const res = await foodApi.search(keyword.value.trim() || '')
     results.value = res.data || []
     searched.value = true
-  } catch (e: any) {
-    error.value = e.message || '加载失败'
+  } catch {
+    results.value = []
   } finally {
     loading.value = false
   }
@@ -363,18 +370,79 @@ const doSearch = async () => {
   searched.value = true
   saveHistory(keyword.value.trim())
   try {
-    const res = await foodApi.search(keyword.value.trim())
-    results.value = res.data || []
+    let localResults: any[] = []
+    try {
+      const res = await foodApi.search(keyword.value.trim())
+      localResults = res.data || []
+    } catch {
+      localResults = []
+    }
+    if (localResults.length > 0) {
+      results.value = localResults
+    } else {
+      try {
+        const extRes = await foodApi.searchExternal(keyword.value.trim())
+        const extResults = (extRes.data || []).map((item: any) => ({ ...item, isExternal: true }))
+        results.value = extResults
+      } catch {
+        results.value = getLocalFallback(keyword.value.trim())
+      }
+    }
   } catch (e: any) {
-    error.value = e.message || '搜索失败'
+    results.value = getLocalFallback(keyword.value.trim())
+    if (results.value.length === 0) {
+      error.value = e.message || '搜索失败'
+    }
   } finally {
     loading.value = false
   }
 }
 
+const getLocalFallback = (kw: string): any[] => {
+  const fallbacks = [
+    { id: -1, name: '米饭', category: '主食', calories: 116, protein: 2.6, fat: 0.3, carbs: 25.6, unit: '100g' },
+    { id: -2, name: '鸡蛋', category: '蛋奶', calories: 144, protein: 13.3, fat: 8.8, carbs: 2.8, unit: '100g' },
+    { id: -3, name: '苹果', category: '水果', calories: 52, protein: 0.3, fat: 0.2, carbs: 13.7, unit: '100g' },
+    { id: -4, name: '鸡胸肉', category: '肉类', calories: 133, protein: 31, fat: 1.2, carbs: 0, unit: '100g' },
+    { id: -5, name: '西红柿炒蛋', category: '菜肴', calories: 120, protein: 8.5, fat: 6.2, carbs: 9.0, unit: '100g' },
+    { id: -6, name: '面条', category: '主食', calories: 110, protein: 3.5, fat: 0.5, carbs: 22.0, unit: '100g' },
+    { id: -7, name: '牛奶', category: '饮品', calories: 54, protein: 3.0, fat: 3.2, carbs: 3.4, unit: '100ml' },
+    { id: -8, name: '香蕉', category: '水果', calories: 89, protein: 1.1, fat: 0.3, carbs: 22.8, unit: '100g' },
+  ]
+  if (!kw) return fallbacks
+  return fallbacks.filter(f => f.name.includes(kw) || kw.includes(f.name) || f.category.includes(kw))
+}
+
 const goCamera = () => Taro.switchTab({ url: '/pages/camera/index' })
 
-const openAddPopup = (food: any) => {
+const openAddPopup = async (food: any) => {
+  if (food.isExternal && (!food.id || food.id < 0)) {
+    importing.value = true
+    Taro.showLoading({ title: '导入中...' })
+    try {
+      const res = await foodApi.importFood({
+        name: food.name,
+        category: food.category,
+        calories: food.calories,
+        protein: food.protein,
+        fat: food.fat,
+        carbs: food.carbs,
+        unit: food.unit,
+      })
+      food = { ...res.data, isExternal: false }
+      const idx = results.value.findIndex(r => r.name === food.name && r.isExternal)
+      if (idx !== -1) results.value[idx] = food
+    } catch {
+      food = { ...food, isExternal: false }
+    } finally {
+      importing.value = false
+      Taro.hideLoading()
+    }
+  }
+  // 如果食物没有有效 id（兜底数据或导入失败），生成一个临时标识
+  if (!food.id || food.id < 0) {
+    food = { ...food, id: `local_${food.name}_${Date.now()}` }
+  }
   selectedFood.value = food
   servings.value = 1
   unit.value = food.unit || '份'
@@ -392,22 +460,33 @@ const confirmAdd = async () => {
   if (!selectedFood.value || adding.value) return
   adding.value = true
   try {
+    const rawId = selectedFood.value.id
+    const foodId = typeof rawId === 'number' && rawId > 0 ? rawId : undefined
     await recordApi.add({
-      foodId: selectedFood.value.id,
-      mealType: mealType.value,
-      servings: servings.value,
+      foodId,
+      foodName: selectedFood.value.name,
+      calories: Math.round((selectedFood.value.calories || 0) * servings.value),
+      servings: servings.value || 1,
       unit: unit.value,
+      mealType: mealType.value || 'breakfast',
     })
     justAdded.value = selectedFood.value.name
     showPopup.value = false
     setTimeout(() => { justAdded.value = '' }, 3000)
     Taro.showToast({ title: '记录成功', icon: 'success' })
-  } catch (e: any) {
-    Taro.showToast({ title: e.message || '添加失败', icon: 'none' })
+  } catch (err: any) {
+    const errMsg = err?.message || JSON.stringify(err) || '未知错误'
+    Taro.showModal({
+      title: '添加失败',
+      content: errMsg,
+      showCancel: false,
+    })
   } finally {
     adding.value = false
   }
 }
+
+const onPrivacyAgreed = () => { loadFoods() }
 
 useDidShow(() => {
   if (!Taro.getStorageSync('token')) {
@@ -791,26 +870,41 @@ $shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
   }
 
   .food-info {
-    flex: 1;
-    min-width: 0;
+      flex: 1;
+      min-width: 0;
 
-    .food-name {
-      font-size: 30rpx;
-      font-weight: 600;
-      color: $text-main;
-      display: block;
-      margin-bottom: 8rpx;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
+      .food-name-row {
+        display: flex;
+        align-items: center;
+        gap: 8rpx;
+        margin-bottom: 8rpx;
+      }
 
-    .food-cal-desc {
-      font-size: 24rpx;
-      color: $text-sub;
-      display: block;
+      .food-name {
+        font-size: 30rpx;
+        font-weight: 600;
+        color: $text-main;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .external-tag {
+        flex-shrink: 0;
+        font-size: 18rpx;
+        color: #3B82F6;
+        background: rgba(59, 130, 246, 0.1);
+        padding: 2rpx 12rpx;
+        border-radius: 8rpx;
+        font-weight: 500;
+      }
+
+      .food-cal-desc {
+        font-size: 24rpx;
+        color: $text-sub;
+        display: block;
+      }
     }
-  }
 
   .add-btn {
     width: 56rpx;

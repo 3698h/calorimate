@@ -1,6 +1,7 @@
 <template>
   <view class="profile-page">
-    
+    <PrivacyPopup @agreed="onPrivacyAgreed" />
+
     <!-- 状态遮罩 -->
     <view v-if="loading" class="state-wrap fade-in">
       <view class="loading-spinner" />
@@ -144,6 +145,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import Taro, { useDidShow } from '@tarojs/taro'
+import PrivacyPopup from '../../components/PrivacyPopup.vue'
 import { userApi, recordApi } from '../../api'
 
 const defaultAvatar = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI1MCIgZmlsbD0iI2UwZTBlMCIvPjxjaXJjbGUgY3g9IjUwIiBjeT0iMzgiIHI9IjE4IiBmaWxsPSIjYmRiZGJkIi8+PGVsbGlwcGUgY3g9IjUwIiBjeT0iNzgiIHJ4PSIyOCIgcnk9IjIwIiBmaWxsPSIjYmRiZGJkIi8+PC9zdmc+'
@@ -206,8 +208,15 @@ const loadData = async () => {
     }
     if (dailyTargetRes.status === 'fulfilled' && dailyTargetRes.value.data) {
       const target = dailyTargetRes.value.data.targetCalories
-      if (target && !userInfo.value.targetCalories) {
+      if (target) {
         userInfo.value = { ...userInfo.value, targetCalories: target }
+        Taro.setStorageSync('cachedTargetCalories', target)
+      }
+    }
+    if (!userInfo.value.targetCalories) {
+      const cached = Taro.getStorageSync('cachedTargetCalories')
+      if (cached) {
+        userInfo.value = { ...userInfo.value, targetCalories: cached }
       }
     }
     await Promise.all([loadCalendarData(), loadWeekAvg()])
@@ -257,7 +266,7 @@ const loadWeekAvg = async () => {
 
 const goEdit = () => Taro.navigateTo({ url: '/pages/profile/edit' })
 const goVip = () => Taro.navigateTo({ url: '/pages/vip/index' })
-const goSettings = () => Taro.navigateTo({ url: '/pages/settings/index' })
+const goSettings = () => Taro.showToast({ title: '设置功能开发中', icon: 'none' })
 
 const feedback = () => {
   Taro.showModal({
@@ -281,6 +290,8 @@ const handleLogout = () => {
     },
   })
 }
+
+const onPrivacyAgreed = () => { loadData() }
 
 onMounted(() => { if (Taro.getStorageSync('privacy_agreed')) loadData() })
 useDidShow(() => { if (Taro.getStorageSync('privacy_agreed')) loadData() })

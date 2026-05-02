@@ -35,7 +35,8 @@
     "useCompilerPlugins": false,
     "condition": false,
     "swc": false,
-    "disableSWC": true
+    "disableSWC": true,
+    "packNpmRelationList": []
   },
   "compileType": "miniprogram",
   "condition": {},
@@ -43,35 +44,36 @@
   "packOptions": {
     "ignore": [
       {
-        "type": "folder",
-        "value": "node_modules/@vue"
+        "value": "node_modules/@vue",
+        "type": "folder"
       },
       {
-        "type": "folder",
-        "value": "node_modules/@parcel"
+        "value": "node_modules/@parcel",
+        "type": "folder"
       },
       {
-        "type": "folder",
-        "value": "node_modules/@swc"
+        "value": "node_modules/@swc",
+        "type": "folder"
       },
       {
-        "type": "folder",
-        "value": "node_modules/webpack"
+        "value": "node_modules/webpack",
+        "type": "folder"
       },
       {
-        "type": "folder",
-        "value": "node_modules/vue-loader"
+        "value": "node_modules/vue-loader",
+        "type": "folder"
       },
       {
-        "type": "folder",
-        "value": "node_modules/sass-loader"
+        "value": "node_modules/sass-loader",
+        "type": "folder"
       },
       {
-        "type": "folder",
-        "value": "node_modules/sass"
+        "value": "node_modules/sass",
+        "type": "folder"
       }
     ],
     "include": []
   },
-  "editorSetting": {}
+  "editorSetting": {},
+  "libVersion": "3.15.2"
 }

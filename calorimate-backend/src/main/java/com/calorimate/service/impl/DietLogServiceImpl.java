@@ -1,7 +1,9 @@
 package com.calorimate.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.calorimate.dto.AiRecordDTO;
 import com.calorimate.dto.DietLogDTO;
+import com.calorimate.dto.RecordAddDTO;
 import com.calorimate.entity.DietLog;
 import com.calorimate.entity.Food;
 import com.calorimate.mapper.DietLogMapper;
@@ -41,6 +43,69 @@ public class DietLogServiceImpl implements DietLogService {
         dietLog.setServings(dto.getServings());
         dietLog.setCalories(food.getCalories() * dto.getServings());
         dietLog.setLogDate(dto.getLogDate() != null ? dto.getLogDate() : LocalDate.now());
+        dietLog.setCreateTime(LocalDateTime.now());
+        dietLog.setUpdateTime(LocalDateTime.now());
+
+        dietLogMapper.insert(dietLog);
+    }
+
+    @Override
+    public void addAiDietLog(Long userId, AiRecordDTO dto) {
+        Food food = new Food();
+        food.setName(dto.getFoodName());
+        food.setCalories(dto.getCalories());
+        food.setProtein(dto.getProtein() != null ? dto.getProtein() : 0.0);
+        food.setFat(dto.getFat() != null ? dto.getFat() : 0.0);
+        food.setCarbs(dto.getCarbs() != null ? dto.getCarbs() : 0.0);
+        food.setUnit("份");
+        food.setCategory("AI识别");
+        food.setCreateTime(LocalDateTime.now());
+        food.setUpdateTime(LocalDateTime.now());
+        foodMapper.insert(food);
+
+        DietLog dietLog = new DietLog();
+        dietLog.setUserId(userId);
+        dietLog.setFoodId(food.getId());
+        dietLog.setMealType(dto.getMealType());
+        dietLog.setServings(1.0);
+        dietLog.setCalories(dto.getCalories());
+        dietLog.setLogDate(LocalDate.now());
+        dietLog.setCreateTime(LocalDateTime.now());
+        dietLog.setUpdateTime(LocalDateTime.now());
+
+        dietLogMapper.insert(dietLog);
+    }
+
+    @Override
+    public void addManualDietLog(Long userId, RecordAddDTO dto) {
+        Food food = null;
+        if (dto.getFoodId() != null && dto.getFoodId() > 0) {
+            food = foodMapper.selectById(dto.getFoodId());
+        }
+        if (food == null) {
+            food = new Food();
+            food.setName(dto.getFoodName());
+            food.setCalories(dto.getCalories());
+            food.setProtein(0.0);
+            food.setFat(0.0);
+            food.setCarbs(0.0);
+            food.setUnit(dto.getUnit() != null ? dto.getUnit() : "份");
+            food.setCategory("手动添加");
+            food.setCreateTime(LocalDateTime.now());
+            food.setUpdateTime(LocalDateTime.now());
+            foodMapper.insert(food);
+        }
+
+        double servings = dto.getServings() != null ? dto.getServings() : 1.0;
+        String mealType = dto.getMealType() != null && !dto.getMealType().isEmpty() ? dto.getMealType() : "早餐";
+
+        DietLog dietLog = new DietLog();
+        dietLog.setUserId(userId);
+        dietLog.setFoodId(food.getId());
+        dietLog.setMealType(mealType);
+        dietLog.setServings(servings);
+        dietLog.setCalories(dto.getCalories());
+        dietLog.setLogDate(LocalDate.now());
         dietLog.setCreateTime(LocalDateTime.now());
         dietLog.setUpdateTime(LocalDateTime.now());
 

@@ -18,5 +18,8 @@ public class AiParseResultVO {
         private String name;
         private String amount;
         private Double calories;
+        private Double protein;
+        private Double fat;
+        private Double carbs;
     }
 }

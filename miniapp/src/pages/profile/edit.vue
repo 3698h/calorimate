@@ -164,7 +164,9 @@ const loadProfile = async () => {
     form.activityLevel = d.activityLevel || ''
     form.goal = d.goal || ''
   } catch (e: any) {
-    loadError.value = e.message || '加载失败'
+    const msg = e?.message || e?.errMsg || '加载个人资料失败，请稍后重试'
+    loadError.value = msg
+    console.error('[edit-profile] loadProfile error:', e)
   } finally {
     loading.value = false
   }
@@ -187,6 +189,12 @@ const handleSave = async () => {
       activityLevel: form.activityLevel || null,
       goal: form.goal || null,
     })
+    try {
+      const targetRes = await userApi.getDailyTarget()
+      if (targetRes.data?.targetCalories) {
+        Taro.setStorageSync('cachedTargetCalories', targetRes.data.targetCalories)
+      }
+    } catch (_) {}
     Taro.showToast({ title: '保存成功', icon: 'success' })
     setTimeout(() => Taro.navigateBack(), 1200)
   } catch (e: any) {
@@ -203,12 +211,46 @@ onMounted(() => loadProfile())
 .edit-page {
   min-height: 100vh;
   background: #F8FBF8;
-  padding: 24px 0;
+  padding: 32rpx 32rpx;
+  padding-bottom: calc(32rpx + env(safe-area-inset-bottom));
+}
+
+.loading-wrap, .error-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  padding: 40rpx;
+}
+
+.loading-wrap text {
+  font-size: 30rpx;
+  color: #7F8C8D;
+}
+
+.error-wrap .error-text {
+  font-size: 30rpx;
+  color: #E74C3C;
+  margin-bottom: 32rpx;
+  text-align: center;
+}
+
+.error-wrap .btn-retry {
+  background: #2ECC71;
+  color: #FFFFFF;
+  border-radius: 999rpx;
+  padding: 20rpx 80rpx;
+  font-size: 30rpx;
+  border: none;
 }
 
 .form-section {
+  background: #FFFFFF;
   padding: 0;
   border-radius: 20rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.04);
+  overflow: hidden;
 }
 
 .form-item {

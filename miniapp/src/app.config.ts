@@ -8,12 +8,13 @@ export default defineAppConfig({
     'pages/profile/edit',
     'pages/vip/index',
   ],
+  __usePrivacyCheck__: true,
   window: {
     backgroundTextStyle: 'light',
     navigationBarBackgroundColor: '#2ECC71',
     navigationBarTitleText: '食光机',
     navigationBarTextStyle: 'white',
-    backgroundColor: '#F8FBF8',
+    backgroundColor: '#f5f5f5',
   },
   tabBar: {
     color: '#7F8C8D',
@@ -52,6 +53,7 @@ export default defineAppConfig({
     'scope.writePhotosAlbum': { desc: '用于保存饮食记录截图' },
     'scope.userInfo': { desc: '用于获取您的微信昵称和头像' },
   },
-  requiredPrivateInfos: ['chooseAddress'],
+  requiredPrivateInfos: [],
   lazyCodeLoading: 'requiredComponents',
+  usingComponents: {},
 })

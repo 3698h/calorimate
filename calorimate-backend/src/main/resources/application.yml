@@ -36,7 +36,17 @@ ai:
   api-key: sk-8fcabf24483f438fb8a5301003976aa8
   base-url: https://api.deepseek.com/v1
   model: deepseek-chat
+  vision-model: deepseek-v4-pro  # DeepSeek视觉模型，用于图像识别
 
 wx:
   appid: your-appid  # 请填写你的微信小程序AppID
   secret: your-secret  # 请填写你的微信小程序AppSecret
+  pay:
+    sandbox: true  # 是否启用微信支付沙箱环境
+    mch-id: your-mch-id  # 商户号
+    api-key: your-api-key  # 商户API密钥
+    sandbox-key: 12345678901234567890123456789012  # 沙箱密钥
+
+tianapi:
+  base-url: https://apis.tianapi.com
+  api-key: ea888b1506998e1f0719a6a5c73a6d43

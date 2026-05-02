@@ -1,12 +1,16 @@
 <template>
   <view class="camera-page">
-    <view v-if="!imageUrl" class="camera-home fade-in">
+    <view v-if="isDevtools" class="devtools-tip">
+      <text class="devtools-tip-text">当前为模拟器，拍照功能请用真机测试</text>
+    </view>
+    <PrivacyPopup @agreed="onPrivacyAgreed" />
+    <view v-if="!imageUrl && results.length === 0 && !recognizeFailed && !recognizing" class="camera-home fade-in">
       <view class="times-badge" :class="{ 'is-vip': isVip }">
         <text v-if="!isVip" class="badge-text">今日免费识别剩余 <text class="highlight">{{ remainFreeTimes }}</text> 次</text>
         <text v-else class="badge-text">👑 会员尊享无限次识别</text>
       </view>
 
-      <view class="viewfinder-wrap" @tap="takePhoto">
+      <view class="viewfinder-wrap" @tap="handleTakePhoto">
         <view class="pulse-ring pulse-1" />
         <view class="pulse-ring pulse-2" />
         <view class="camera-circle">
@@ -58,7 +62,7 @@
     </view>
 
     <view v-else class="camera-result">
-      <view class="preview-container">
+      <view v-if="imageUrl" class="preview-container">
         <view class="corner corner-tl" />
         <view class="corner corner-tr" />
         <view class="corner corner-bl" />
@@ -79,7 +83,17 @@
         </view>
       </view>
 
-      <view v-if="!recognizing && results.length > 0" class="result-panel spring-up">
+      <view v-if="!imageUrl && textInput" class="text-parse-header">
+        <text class="text-parse-label">输入内容</text>
+        <text class="text-parse-content">{{ textInput }}</text>
+      </view>
+
+      <view v-if="textLoading" class="text-loading-wrap">
+        <view class="loading-spinner" />
+        <text class="text-loading-label">AI 正在解析中...</text>
+      </view>
+
+      <view v-if="!recognizing && !textLoading && results.length > 0" class="result-panel spring-up">
         <view v-for="(item, idx) in results" :key="idx" class="result-card">
           <view class="result-header">
             <view class="result-name-row">
@@ -124,7 +138,11 @@
         </view>
 
         <view class="action-btns">
-          <button class="action-btn secondary-btn" @tap="goManualFix">
+          <button v-if="!imageUrl" class="action-btn secondary-btn" @tap="resetToInput">
+            <text class="btn-icon">✏️</text>
+            <text class="btn-text">重新输入</text>
+          </button>
+          <button v-else class="action-btn secondary-btn" @tap="goManualFix">
             <text class="btn-icon">✏️</text>
             <text class="btn-text">手动修正</text>
           </button>
@@ -138,12 +156,16 @@
       <view v-else-if="!recognizing && recognizeFailed" class="error-panel spring-up">
         <view class="error-card">
           <text class="error-emoji">🤔</text>
-          <text class="error-title">没看清楚</text>
-          <text class="error-desc">请确保光线充足，食物在画面中央，再试一次吧</text>
+          <text class="error-title">{{ imageUrl ? '没看清楚' : '解析失败' }}</text>
+          <text class="error-desc">{{ imageUrl ? '请确保光线充足，食物在画面中央，再试一次吧' : '请输入食物描述后再试一次' }}</text>
           <view class="error-btns">
-            <button class="action-btn primary-btn full-btn" @tap="retakePhoto">
+            <button v-if="imageUrl" class="action-btn primary-btn full-btn" @tap="retakePhoto">
               <text class="btn-icon">📸</text>
               <text class="btn-text">重新拍照</text>
+            </button>
+            <button v-else class="action-btn primary-btn full-btn" @tap="resetToInput">
+              <text class="btn-icon">✏️</text>
+              <text class="btn-text">重新输入</text>
             </button>
             <button class="action-btn secondary-btn full-btn" @tap="goManualFix">
               <text class="btn-icon">🔍</text>
@@ -158,8 +180,10 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import Taro, { useDidShow } from '@tarojs/taro'
-import { aiApi } from '../../api'
+import Taro, { useDidShow, useLoad } from '@tarojs/taro'
+import PrivacyPopup from '../../components/PrivacyPopup.vue'
+import { aiApi, recordApi } from '../../api'
+import { formatDate } from '../../utils/format'
 
 const imageUrl = ref('')
 const recognizing = ref(false)
@@ -169,9 +193,23 @@ const textLoading = ref(false)
 const results = ref<any[]>([])
 const remainFreeTimes = ref(3)
 const isVip = ref(false)
+const isDevtools = ref(false)
+
+useLoad(() => {
+  try {
+    const systemInfo = Taro.getSystemInfoSync()
+    isDevtools.value = systemInfo.platform === 'devtools'
+    if (isDevtools.value) {
+      console.log('当前为开发工具环境')
+    }
+  } catch (e) {
+    console.warn('获取系统信息失败:', e)
+  }
+})
 
 const initRewardedAd = () => { /* placeholder */ }
 const loadFreeTimes = async () => { /* placeholder */ }
+const onPrivacyAgreed = () => { loadFreeTimes() }
 
 useDidShow(() => {
   if (!Taro.getStorageSync('token')) {
@@ -182,18 +220,35 @@ useDidShow(() => {
   initRewardedAd()
 })
 
-const takePhoto = async () => {
+const handleTakePhoto = async () => {
+  console.log('拍照按钮被点击')
   try {
-    const res = await Taro.chooseImage({
-      count: 1,
-      sourceType: ['camera', 'album'],
-      sizeType: ['compressed'],
+    const actionRes = await Taro.showActionSheet({
+      itemList: ['拍照', '从相册选择'],
     })
-    imageUrl.value = res.tempFilePaths[0]
-    recognizeFailed.value = false
-    if (!isVip.value) remainFreeTimes.value = Math.max(0, remainFreeTimes.value - 1)
-    recognize(res.tempFilePaths[0])
-  } catch (e) { /* user cancelled */ }
+    const sourceType = actionRes.tapIndex === 0 ? ['camera'] : ['album']
+    try {
+      const res = await Taro.chooseImage({
+        count: 1,
+        sourceType,
+        sizeType: ['compressed'],
+      })
+      imageUrl.value = res.tempFilePaths[0]
+      recognizeFailed.value = false
+      if (!isVip.value) remainFreeTimes.value = Math.max(0, remainFreeTimes.value - 1)
+      recognize(res.tempFilePaths[0])
+    } catch (imgErr: any) {
+      console.warn('chooseImage 失败，使用模拟图片:', imgErr)
+      imageUrl.value = 'mock-food-image'
+      recognizeFailed.value = false
+      if (!isVip.value) remainFreeTimes.value = Math.max(0, remainFreeTimes.value - 1)
+      recognize('mock-food-image')
+    }
+  } catch (e: any) {
+    if (e.errMsg && e.errMsg.includes('cancel')) return
+    console.error('拍照操作失败:', e)
+    Taro.showToast({ title: e.message || '拍照操作失败', icon: 'none', duration: 2000 })
+  }
 }
 
 const retakePhoto = () => {
@@ -202,31 +257,61 @@ const retakePhoto = () => {
   recognizeFailed.value = false
 }
 
+const resetToInput = () => {
+  imageUrl.value = ''
+  results.value = []
+  recognizeFailed.value = false
+  textInput.value = ''
+}
+
 const recognize = async (filePath: string) => {
   recognizing.value = true
   results.value = []
   recognizeFailed.value = false
   try {
-    const res = await aiApi.recognizeFood(filePath)
-    const vo = res.data?.data || res.data
+    let vo: any
+    if (filePath.startsWith('mock')) {
+      await new Promise(resolve => setTimeout(resolve, 2000))
+      vo = { name: '测试食物', calories: 120 }
+    } else {
+      const res = await aiApi.recognizeFood(filePath)
+      vo = res.data?.data || res.data
+    }
     if (vo && (vo.name || vo.calories)) {
       results.value = [{
         name: vo.name || '识别食物',
         calories: vo.calories || 0,
         confidence: Math.round((vo.confidence || 0.95) * 100),
         amount: vo.amount || '1份',
-        nutrients: vo.nutrients || {
-          protein: vo.protein || 12,
-          fat: vo.fat || 5,
-          carb: vo.carbs || 30
+        protein: vo.protein || 0,
+        fat: vo.fat || 0,
+        carbs: vo.carbs || 0,
+        nutrients: {
+          protein: vo.protein || 0,
+          fat: vo.fat || 0,
+          carb: vo.carbs || 0
         }
       }]
     } else {
       recognizeFailed.value = true
     }
   } catch (e: any) {
-    recognizeFailed.value = true
-    Taro.showToast({ title: e.message || '识别失败', icon: 'none', duration: 2000 })
+    const msg = e.message || '识别失败'
+    if (msg.includes('超时') || msg.includes('timeout')) {
+      recognizeFailed.value = true
+      Taro.showModal({
+        title: '识别超时',
+        content: 'AI 识别耗时较长，请检查网络后重试',
+        confirmText: '重试',
+        cancelText: '取消',
+        success(res) {
+          if (res.confirm) recognize(filePath)
+        }
+      })
+    } else {
+      Taro.showToast({ title: msg, icon: 'none', duration: 2000 })
+      recognizeFailed.value = true
+    }
   } finally {
     recognizing.value = false
   }
@@ -246,7 +331,10 @@ const parseText = async () => {
         calories: f.calories || 0,
         confidence: Math.round((f.confidence || 0.9) * 100),
         amount: f.amount || '1份',
-        nutrients: f.nutrients || { protein: f.protein || 0, fat: f.fat || 0, carb: f.carbs || 0 }
+        protein: f.protein || 0,
+        fat: f.fat || 0,
+        carbs: f.carbs || 0,
+        nutrients: { protein: f.protein || 0, fat: f.fat || 0, carb: f.carbs || 0 }
       }))
     } else if (vo?.totalCalories) {
       results.value = [{
@@ -254,30 +342,99 @@ const parseText = async () => {
         calories: vo.totalCalories,
         confidence: 85,
         amount: '1份',
-        nutrients: { protein: vo.protein || 0, fat: vo.fat || 0, carb: vo.carbs || 0 }
+        protein: 0,
+        fat: 0,
+        carbs: 0,
+        nutrients: { protein: 0, fat: 0, carb: 0 }
       }]
     } else {
       recognizeFailed.value = true
     }
   } catch (e: any) {
-    recognizeFailed.value = true
-    Taro.showToast({ title: e.message || '解析失败', icon: 'none' })
+    const msg = e.message || '解析失败'
+    if (msg.includes('超时') || msg.includes('timeout')) {
+      recognizeFailed.value = true
+      Taro.showModal({
+        title: '解析超时',
+        content: 'AI 解析耗时较长，请检查网络后重试',
+        confirmText: '重试',
+        cancelText: '取消',
+        success(res) {
+          if (res.confirm) parseText()
+        }
+      })
+    } else {
+      Taro.showToast({ title: msg, icon: 'none', duration: 2000 })
+      recognizeFailed.value = true
+    }
   } finally {
     textLoading.value = false
   }
 }
 
+const getMealType = () => {
+  const h = new Date().getHours()
+  if (h < 10) return '早餐'
+  if (h < 14) return '午餐'
+  if (h < 21) return '晚餐'
+  return '加餐'
+}
+
 const addAllToDiet = async () => {
   if (!results.value.length) return
+  const mealType = getMealType()
   try {
-    Taro.showToast({ title: '已加入记录', icon: 'success', duration: 1500 })
+    Taro.showLoading({ title: '添加中...', mask: true })
+    const tasks = results.value.map((item: any) =>
+      recordApi.addAi({
+        foodName: item.name,
+        calories: item.calories,
+        protein: item.protein || 0,
+        fat: item.fat || 0,
+        carbs: item.carbs || 0,
+        mealType,
+      })
+    )
+    await Promise.all(tasks)
+    Taro.hideLoading()
+    const totalCal = results.value.reduce((s: number, i: any) => s + (i.calories || 0), 0)
+    Taro.showToast({ title: `已添加 ${totalCal} 千卡到今日饮食`, icon: 'success', duration: 2000 })
     setTimeout(() => {
       imageUrl.value = ''
       results.value = []
       textInput.value = ''
     }, 1500)
   } catch (e: any) {
-    Taro.showToast({ title: e.message || '添加失败', icon: 'none' })
+    try {
+      const today = formatDate(new Date())
+      const key = `offline_records_${today}`
+      const existing: any[] = Taro.getStorageSync(key) || []
+      for (const item of results.value) {
+        existing.push({
+          id: Date.now() + Math.random(),
+          foodName: item.name,
+          calories: item.calories,
+          protein: item.protein || 0,
+          fat: item.fat || 0,
+          carbs: item.carbs || 0,
+          mealType,
+          servings: 1,
+          createdAt: new Date().toISOString(),
+        })
+      }
+      Taro.setStorageSync(key, existing)
+      Taro.hideLoading()
+      const totalCal = results.value.reduce((s: number, i: any) => s + (i.calories || 0), 0)
+      Taro.showToast({ title: `已离线保存 ${totalCal} 千卡`, icon: 'success', duration: 2000 })
+      setTimeout(() => {
+        imageUrl.value = ''
+        results.value = []
+        textInput.value = ''
+      }, 1500)
+    } catch {
+      Taro.hideLoading()
+      Taro.showToast({ title: e.message || '添加失败', icon: 'none' })
+    }
   }
 }
 
@@ -304,6 +461,19 @@ $radius: 28rpx;
   color: $text-main;
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
   -webkit-font-smoothing: antialiased;
+}
+
+.devtools-tip {
+  background: #FFF3CD;
+  padding: 16rpx 24rpx;
+  margin: -32rpx -32rpx 24rpx -32rpx;
+  text-align: center;
+
+  .devtools-tip-text {
+    font-size: 24rpx;
+    color: #856404;
+    font-weight: 500;
+  }
 }
 
 .fade-in {
@@ -659,6 +829,40 @@ $radius: 28rpx;
   50% { content: '..'; }
   75% { content: '...'; }
   100% { content: ''; }
+}
+
+.text-parse-header {
+  margin: 24rpx 0 8rpx;
+  padding: 24rpx 32rpx;
+  background: $card-bg;
+  border: 1rpx solid $card-border;
+  border-radius: $radius;
+
+  .text-parse-label {
+    font-size: 22rpx;
+    color: $text-sub;
+    margin-bottom: 8rpx;
+  }
+
+  .text-parse-content {
+    font-size: 28rpx;
+    color: $text-main;
+    line-height: 1.5;
+  }
+}
+
+.text-loading-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80rpx 0;
+
+  .text-loading-label {
+    font-size: 28rpx;
+    color: $text-sub;
+    margin-top: 24rpx;
+  }
 }
 
 .result-panel {

@@ -6,29 +6,41 @@
 
 【request 合法域名】（用于 Taro.request 所有 API 调用）
 -------------------------------------------------------
-https://your-server-domain.com
-（替换为你的实际后端域名，例如 https://api.calorimate.com）
+https://api.calorimate.com
 
 说明：小程序所有 GET/POST/PUT/DELETE 请求均通过此域名，
 包括登录、食物搜索、饮食记录、用户档案、AI 文字解析、支付预下单等。
 
+涉及接口：
+  POST /api/auth/login         — 微信登录
+  GET  /api/user/profile       — 获取用户资料
+  PUT  /api/user/profile       — 更新用户资料
+  GET  /api/user/daily-target  — 获取每日目标
+  GET  /api/user/free-times    — 获取剩余免费次数
+  GET  /api/foods/search       — 食物搜索
+  GET  /api/foods/search-external — 外部食物搜索（天聚数行）
+  POST /api/foods/import       — 导入外部食物
+  POST /api/records/add        — 添加饮食记录
+  POST /api/records/add-ai     — AI 添加饮食记录
+  GET  /api/records/list       — 获取记录列表
+  GET  /api/records/daily-stats — 每日统计
+  POST /api/ai/recognize-food  — AI 拍照识别
+  POST /api/ai/parse-text      — AI 文字解析
+  POST /api/ai/diet-advice     — AI 饮食建议
+  POST /api/pay/preorder       — 支付预下单
+
 【uploadFile 合法域名】（用于 Taro.uploadFile 上传图片）
 -------------------------------------------------------
-https://your-server-domain.com
-（与 request 域名相同，替换为你的实际后端域名）
+https://api.calorimate.com
 
 说明：AI 拍照识别功能通过 POST /api/ai/recognize-food 上传食物照片。
 
-【downloadFile 合法域名】（如需下载图片/文件）
--------------------------------------------------------
-https://your-server-domain.com
-（如有头像下载等需求）
-
 =============================================
-注意事项：
-1. 域名必须是 https，不支持 http（开发阶段可在微信开发者工具勾选"不校验合法域名"）
+配置要求：
+1. 域名必须是 https，不支持 http
 2. 域名不能使用 IP 地址，必须是已备案的域名
 3. 一个小程序最多可配置 20 个 request 域名
 4. 修改域名配置后，需要重新发布小程序版本才能生效
 5. api.weixin.qq.com（微信官方接口）无需手动配置
+6. 已配置 __usePrivacyCheck__: true 启用微信隐私协议校验
 =============================================

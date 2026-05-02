@@ -22,4 +22,6 @@ public interface UserService {
     void addFreeTimes(Long userId);
 
     Map<String, Object> calculateDailyTarget(Long userId);
+
+    void updateVipExpireTime(Long userId, int days);
 }

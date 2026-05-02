@@ -40,16 +40,18 @@ public class AiServiceImpl implements AiService {
     @Autowired
     private UserMapper userMapper;
 
-    private static final String PARSE_SYSTEM_PROMPT =
-            "你是一个营养师助手。用户会描述他们吃的食物，你需要解析出每种食物的名称、份量和估算卡路里。\n" +
+    private static final String PARSE_SYSTEM_PROMPT = "你是一个营养师助手。用户会描述他们吃的食物，你需要解析出每种食物的名称、份量、估算卡路里和三大营养素（蛋白质、脂肪、碳水化合物）。\n"
+            +
             "请严格按照JSON格式返回结果，不要返回任何其他文字。\n\n" +
             "示例：输入\"吃了一个鸡蛋和一碗米饭\"返回：\n" +
-            "{\"foods\": [{\"name\": \"鸡蛋\", \"amount\": \"1个\", \"calories\": 80}, " +
-            "{\"name\": \"米饭\", \"amount\": \"1碗\", \"calories\": 230}], " +
-            "\"totalCalories\": 310, \"mealType\": \"午餐\"}";
+            "{\"foods\": [{\"name\": \"鸡蛋\", \"amount\": \"1个\", \"calories\": 80, \"protein\": 6.5, \"fat\": 5.3, \"carbs\": 0.6}, "
+            +
+            "{\"name\": \"米饭\", \"amount\": \"1碗\", \"calories\": 230, \"protein\": 4.5, \"fat\": 0.5, \"carbs\": 50.0}], "
+            +
+            "\"totalCalories\": 310, \"mealType\": \"午餐\"}\n\n" +
+            "注意：protein为蛋白质(克)、fat为脂肪(克)、carbs为碳水化合物(克)，请尽量给出合理估算值。";
 
-    private static final String ADVICE_SYSTEM_PROMPT =
-            "你是一个专业的营养师。根据用户的个人信息和今日饮食数据，给出专业的营养建议。\n" +
+    private static final String ADVICE_SYSTEM_PROMPT = "你是一个专业的营养师。根据用户的个人信息和今日饮食数据，给出专业的营养建议。\n" +
             "请严格按照JSON格式返回结果，不要返回任何其他文字。\n\n" +
             "示例返回：\n" +
             "{\"evaluation\": \"今日饮食热量偏低，蛋白质摄入不足\", " +
@@ -95,13 +97,12 @@ public class AiServiceImpl implements AiService {
 
         String userMessage = String.format(
                 "用户信息：身高%.1fcm 体重%.1fkg 年龄%d岁 性别%s 目标%.0fkcal\n" +
-                "今日饮食：%s\n今日总摄入：%.0fkcal",
+                        "今日饮食：%s\n今日总摄入：%.0fkcal",
                 user.getHeight(), user.getWeight(), user.getAge(),
                 "male".equals(user.getGender()) ? "男" : "女",
                 user.getTargetCalories(),
                 dietSummary.length() > 0 ? dietSummary.toString() : "暂无饮食记录",
-                totalCalories
-        );
+                totalCalories);
 
         String response = aiClient.chat(ADVICE_SYSTEM_PROMPT, userMessage);
 
@@ -127,6 +128,9 @@ public class AiServiceImpl implements AiService {
                     item.setName(foodJson.getString("name"));
                     item.setAmount(foodJson.getString("amount"));
                     item.setCalories(foodJson.getDouble("calories"));
+                    item.setProtein(foodJson.getDouble("protein"));
+                    item.setFat(foodJson.getDouble("fat"));
+                    item.setCarbs(foodJson.getDouble("carbs"));
                     foods.add(item);
                 }
             }

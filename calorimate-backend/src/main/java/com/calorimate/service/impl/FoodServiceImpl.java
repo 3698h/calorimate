@@ -55,6 +55,21 @@ public class FoodServiceImpl implements FoodService {
     }
 
     @Override
+    public Food importFood(FoodDTO dto) {
+        Food existing = foodMapper.selectOne(
+                new LambdaQueryWrapper<Food>().eq(Food::getName, dto.getName()));
+        if (existing != null) {
+            return existing;
+        }
+        Food food = new Food();
+        BeanUtils.copyProperties(dto, food);
+        food.setCreateTime(LocalDateTime.now());
+        food.setUpdateTime(LocalDateTime.now());
+        foodMapper.insert(food);
+        return food;
+    }
+
+    @Override
     public void updateFood(Long id, FoodDTO dto) {
         Food food = foodMapper.selectById(id);
         if (food == null) {

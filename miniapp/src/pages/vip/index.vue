@@ -1,5 +1,6 @@
 <template>
   <view class="vip-page">
+    <PrivacyPopup @agreed="onPrivacyAgreed" />
     <view class="vip-banner">
       <text class="banner-crown">👑</text>
       <text class="banner-title">食光机会员</text>
@@ -64,6 +65,13 @@
       <button class="pay-btn" :loading="paying" @tap="handlePay">
         立即订阅 ¥{{ selectedPlan?.price || '--' }}
       </button>
+      <button
+        v-if="isDev"
+        class="debug-btn"
+        @tap="handleMockPaySuccess"
+      >
+        调试：模拟支付成功
+      </button>
       <text class="pay-agree">开通即表示同意《用户协议》和《隐私政策》</text>
     </view>
   </view>
@@ -72,10 +80,14 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import Taro from '@tarojs/taro'
+import PrivacyPopup from '../../components/PrivacyPopup.vue'
 import { payApi } from '../../api'
 
 const paying = ref(false)
 const selected = ref('yearly')
+const onPrivacyAgreed = () => {}
+
+const isDev = process.env.NODE_ENV === 'development'
 
 const plans = [
   { id: 'monthly', name: '包月会员', price: '9.9', original: '18', unit: '月', tag: '', hint: '适合短期体验' },
@@ -88,18 +100,20 @@ const handlePay = async () => {
   if (paying.value) return
   paying.value = true
   try {
-    const res = await payApi.prepay(selected.value)
-    const params = res.data
+    const { code } = await Taro.login()
+    const res = await payApi.prepay(selected.value, code)
+    const p = res.data
     await new Promise<void>((resolve, reject) => {
       Taro.requestPayment({
-        timeStamp: params.timeStamp,
-        nonceStr: params.nonceStr,
-        package: params.package,
-        signType: (params.signType || 'MD5') as any,
-        paySign: params.paySign,
+        appId: p.appId,
+        timeStamp: p.timeStamp,
+        nonceStr: p.nonceStr,
+        package: p.package,
+        signType: p.signType as 'MD5' | 'RSA' | 'HMAC-SHA256',
+        paySign: p.paySign,
         success: () => resolve(),
         fail: (err) => reject(new Error(err.errMsg || '支付取消')),
-      })
+      } as any)
     })
     Taro.showModal({
       title: '开通成功',
@@ -111,6 +125,19 @@ const handlePay = async () => {
     Taro.showToast({ title: e.message || '支付失败', icon: 'none', duration: 2000 })
   } finally {
     paying.value = false
+  }
+}
+
+const handleMockPaySuccess = async () => {
+  try {
+    await payApi.mockPaySuccess()
+    Taro.showModal({
+      title: '模拟支付成功',
+      content: '会员已延期30天',
+      showCancel: false,
+    })
+  } catch (e: any) {
+    Taro.showToast({ title: e.message || '操作失败', icon: 'none', duration: 2000 })
   }
 }
 </script>
@@ -285,6 +312,21 @@ const handlePay = async () => {
   font-weight: 700;
   border-radius: 48px;
   border: none;
+
+  &::after { border: none; }
+}
+
+.debug-btn {
+  width: 100%;
+  height: 72px;
+  line-height: 72px;
+  text-align: center;
+  background: #95a5a6;
+  color: #fff;
+  font-size: 28px;
+  border-radius: 36px;
+  border: none;
+  margin-top: 16px;
 
   &::after { border: none; }
 }

@@ -9,6 +9,7 @@ import com.calorimate.mapper.UserMapper;
 import com.calorimate.service.UserService;
 import com.calorimate.util.JwtUtil;
 import com.calorimate.vo.UserVO;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -20,6 +21,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+@Slf4j
 @Service
 public class UserServiceImpl implements UserService {
 
@@ -128,6 +130,14 @@ public class UserServiceImpl implements UserService {
             user.setGoal(dto.getGoal());
         user.setUpdateTime(LocalDateTime.now());
         userMapper.updateById(user);
+
+        try {
+            Map<String, Object> target = calculateDailyTarget(userId);
+            user.setTargetCalories(((Number) target.get("targetCalories")).doubleValue());
+            userMapper.updateById(user);
+        } catch (Exception e) {
+            // 资料不完整导致目标计算失败时不阻塞保存
+        }
     }
 
     @Override
@@ -220,5 +230,31 @@ public class UserServiceImpl implements UserService {
         result.put("targetCalories", Math.round(targetCalories));
         result.put("formula", "Mifflin-St Jeor");
         return result;
+    }
+
+    @Override
+    public void updateVipExpireTime(Long userId, int days) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new RuntimeException("用户不存在");
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime expireTime = user.getVipExpireTime();
+
+        if (expireTime == null || expireTime.isBefore(now)) {
+            expireTime = now.plusDays(days);
+        } else {
+            expireTime = expireTime.plusDays(days);
+        }
+
+        user.setVipExpireTime(expireTime);
+        if (user.getVipLevel() == null || user.getVipLevel() == 0) {
+            user.setVipLevel(1);
+        }
+        user.setUpdateTime(now);
+        userMapper.updateById(user);
+
+        log.info("用户 {} 会员已延期 {} 天，新到期时间: {}", userId, days, expireTime);
     }
 }

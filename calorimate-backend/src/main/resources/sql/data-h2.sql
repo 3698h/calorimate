@@ -1,5 +1,5 @@
-INSERT INTO `user` (`username`, `password`, `height`, `weight`, `age`, `gender`, `target_calories`, `role`) VALUES
-('admin', '$2a$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36PsLJfGqKCQ1FHVCKGO2Hq', 175, 70, 28, 'male', 2000, 'admin');
+INSERT INTO `user` (`username`, `password`, `height`, `weight`, `age`, `gender`, `target_calories`, `activity_level`, `goal`, `role`) VALUES
+('admin', '$2a$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36PsLJfGqKCQ1FHVCKGO2Hq', 175, 70, 28, 'male', 2000, 'light', 'maintain', 'admin');
 
 INSERT INTO `food` (`name`, `category`, `calories`, `protein`, `fat`, `carbs`, `unit`) VALUES
 ('米饭', '主食', 116, 2.6, 0.3, 25.6, '100g'),

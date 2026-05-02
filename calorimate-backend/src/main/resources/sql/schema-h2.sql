@@ -11,6 +11,8 @@ CREATE TABLE IF NOT EXISTS `user` (
     `birthday` VARCHAR(20),
     `target_calories` DOUBLE,
     `target_weight` DOUBLE,
+    `activity_level` VARCHAR(20),
+    `goal` VARCHAR(20),
     `vip_level` INT DEFAULT 0,
     `vip_expire_time` TIMESTAMP,
     `role` VARCHAR(20) DEFAULT 'user',
