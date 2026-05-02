@@ -3,6 +3,7 @@ package com.calorimate.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.calorimate.dto.LoginDTO;
 import com.calorimate.dto.RegisterDTO;
+import com.calorimate.dto.UpdateProfileDTO;
 import com.calorimate.entity.User;
 import com.calorimate.mapper.UserMapper;
 import com.calorimate.service.UserService;
@@ -13,9 +14,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class UserServiceImpl implements UserService {
@@ -28,6 +31,13 @@ public class UserServiceImpl implements UserService {
 
     @Autowired
     private JwtUtil jwtUtil;
+
+    private static final int DEFAULT_FREE_TIMES = 3;
+    private final Map<String, Integer> dailyFreeTimes = new ConcurrentHashMap<>();
+
+    private String timesKey(Long userId) {
+        return userId + ":" + LocalDate.now();
+    }
 
     @Override
     public void register(RegisterDTO dto) {
@@ -92,5 +102,123 @@ public class UserServiceImpl implements UserService {
         UserVO vo = new UserVO();
         BeanUtils.copyProperties(user, vo);
         return vo;
+    }
+
+    @Override
+    public void updateProfile(Long userId, UpdateProfileDTO dto) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new RuntimeException("用户不存在");
+        }
+        if (dto.getGender() != null)
+            user.setGender(dto.getGender());
+        if (dto.getBirthday() != null)
+            user.setBirthday(dto.getBirthday());
+        if (dto.getHeight() != null)
+            user.setHeight(dto.getHeight());
+        if (dto.getWeight() != null)
+            user.setWeight(dto.getWeight());
+        if (dto.getTargetWeight() != null)
+            user.setTargetWeight(dto.getTargetWeight());
+        if (dto.getAge() != null)
+            user.setAge(dto.getAge());
+        if (dto.getActivityLevel() != null)
+            user.setActivityLevel(dto.getActivityLevel());
+        if (dto.getGoal() != null)
+            user.setGoal(dto.getGoal());
+        user.setUpdateTime(LocalDateTime.now());
+        userMapper.updateById(user);
+    }
+
+    @Override
+    public Map<String, Object> getRemainFreeTimes(Long userId) {
+        User user = userMapper.selectById(userId);
+        if (user != null && user.getVipLevel() != null && user.getVipLevel() > 0) {
+            Map<String, Object> result = new HashMap<>();
+            result.put("remain", 9999);
+            return result;
+        }
+        String key = timesKey(userId);
+        int used = dailyFreeTimes.getOrDefault(key, 0);
+        int remain = Math.max(0, DEFAULT_FREE_TIMES - used);
+        Map<String, Object> result = new HashMap<>();
+        result.put("remain", remain);
+        return result;
+    }
+
+    @Override
+    public void addFreeTimes(Long userId) {
+        String key = timesKey(userId);
+        int used = dailyFreeTimes.getOrDefault(key, 0);
+        dailyFreeTimes.put(key, Math.max(0, used - 1));
+    }
+
+    @Override
+    public Map<String, Object> calculateDailyTarget(Long userId) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new RuntimeException("用户不存在");
+        }
+
+        if (user.getHeight() == null || user.getWeight() == null || user.getAge() == null || user.getGender() == null) {
+            throw new RuntimeException("用户信息不完整，请先完善身高、体重、年龄、性别");
+        }
+
+        double height = user.getHeight();
+        double weight = user.getWeight();
+        int age = user.getAge();
+        String gender = user.getGender();
+
+        double bmr;
+        if ("male".equalsIgnoreCase(gender) || "男".equals(gender)) {
+            bmr = 10 * weight + 6.25 * height - 5 * age + 5;
+        } else {
+            bmr = 10 * weight + 6.25 * height - 5 * age - 161;
+        }
+
+        double activityFactor;
+        String activityLevel = user.getActivityLevel();
+        if (activityLevel == null || activityLevel.isEmpty()) {
+            activityFactor = 1.2;
+        } else {
+            switch (activityLevel) {
+                case "sedentary":
+                    activityFactor = 1.2;
+                    break;
+                case "light":
+                    activityFactor = 1.375;
+                    break;
+                case "moderate":
+                    activityFactor = 1.55;
+                    break;
+                case "active":
+                    activityFactor = 1.725;
+                    break;
+                default:
+                    activityFactor = 1.2;
+            }
+        }
+
+        double targetCalories = bmr * activityFactor;
+
+        String goal = user.getGoal();
+        if (goal != null) {
+            switch (goal) {
+                case "lose":
+                    targetCalories -= 500;
+                    break;
+                case "gain":
+                    targetCalories += 500;
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("bmr", Math.round(bmr));
+        result.put("targetCalories", Math.round(targetCalories));
+        result.put("formula", "Mifflin-St Jeor");
+        return result;
     }
 }

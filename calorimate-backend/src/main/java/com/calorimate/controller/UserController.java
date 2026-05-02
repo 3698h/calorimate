@@ -3,6 +3,7 @@ package com.calorimate.controller;
 import com.calorimate.common.Result;
 import com.calorimate.dto.LoginDTO;
 import com.calorimate.dto.RegisterDTO;
+import com.calorimate.dto.UpdateProfileDTO;
 import com.calorimate.service.UserService;
 import com.calorimate.vo.UserVO;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,5 +37,39 @@ public class UserController {
         Long userId = (Long) request.getAttribute("userId");
         UserVO userVO = userService.getUserInfo(userId);
         return Result.success(userVO);
+    }
+
+    @GetMapping("/profile")
+    public Result<UserVO> getProfile(HttpServletRequest request) {
+        Long userId = (Long) request.getAttribute("userId");
+        UserVO userVO = userService.getUserInfo(userId);
+        return Result.success(userVO);
+    }
+
+    @PutMapping("/profile")
+    public Result<?> updateProfile(HttpServletRequest request, @RequestBody UpdateProfileDTO dto) {
+        Long userId = (Long) request.getAttribute("userId");
+        userService.updateProfile(userId, dto);
+        return Result.success();
+    }
+
+    @GetMapping("/remain-free-times")
+    public Result<?> getRemainFreeTimes(HttpServletRequest request) {
+        Long userId = (Long) request.getAttribute("userId");
+        return Result.success(userService.getRemainFreeTimes(userId));
+    }
+
+    @PostMapping("/add-free-times")
+    public Result<?> addFreeTimes(HttpServletRequest request) {
+        Long userId = (Long) request.getAttribute("userId");
+        userService.addFreeTimes(userId);
+        return Result.success();
+    }
+
+    @GetMapping("/daily-target")
+    public Result<Map<String, Object>> getDailyTarget(HttpServletRequest request) {
+        Long userId = (Long) request.getAttribute("userId");
+        Map<String, Object> data = userService.calculateDailyTarget(userId);
+        return Result.success(data);
     }
 }

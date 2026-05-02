@@ -7,16 +7,25 @@ CREATE TABLE `user` (
     `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '用户ID',
     `username` VARCHAR(50) NOT NULL COMMENT '用户名',
     `password` VARCHAR(100) NOT NULL COMMENT '密码(BCrypt加密)',
+    `openid` VARCHAR(100) DEFAULT NULL COMMENT '微信openid',
+    `avatar_url` VARCHAR(500) DEFAULT NULL COMMENT '头像URL',
     `height` DOUBLE DEFAULT NULL COMMENT '身高(cm)',
     `weight` DOUBLE DEFAULT NULL COMMENT '体重(kg)',
     `age` INT DEFAULT NULL COMMENT '年龄',
     `gender` VARCHAR(10) DEFAULT NULL COMMENT '性别(male/female)',
+    `birthday` VARCHAR(20) DEFAULT NULL COMMENT '出生日期',
     `target_calories` DOUBLE DEFAULT 2000 COMMENT '每日目标卡路里',
+    `target_weight` DOUBLE DEFAULT NULL COMMENT '目标体重(kg)',
+    `activity_level` VARCHAR(20) DEFAULT NULL COMMENT '活动量(sedentary/light/moderate/active)',
+    `goal` VARCHAR(20) DEFAULT NULL COMMENT '目标(lose/maintain/gain)',
+    `vip_level` INT DEFAULT 0 COMMENT '会员等级(0=免费)',
+    `vip_expire_time` DATETIME DEFAULT NULL COMMENT '会员到期时间',
     `role` VARCHAR(20) DEFAULT 'user' COMMENT '角色(user/admin)',
     `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     PRIMARY KEY (`id`),
-    UNIQUE KEY `uk_username` (`username`)
+    UNIQUE KEY `uk_username` (`username`),
+    KEY `idx_openid` (`openid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户表';
 
 DROP TABLE IF EXISTS `food`;

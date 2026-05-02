@@ -43,3 +43,10 @@ yarn-error.log*
 
 # Spring Boot
 application-local.yml
+
+# Miniapp
+.swc/
+miniapp/.swc/
+miniapp/dist/
+miniapp/node_modules/
+miniapp/package-lock.json

@@ -2,15 +2,21 @@ CREATE TABLE IF NOT EXISTS `user` (
     `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
     `username` VARCHAR(50) NOT NULL,
     `password` VARCHAR(100) NOT NULL,
+    `openid` VARCHAR(100),
+    `avatar_url` VARCHAR(500),
     `height` DOUBLE,
     `weight` DOUBLE,
     `age` INT,
     `gender` VARCHAR(10),
-    `target_calories` DOUBLE DEFAULT 2000,
+    `birthday` VARCHAR(20),
+    `target_calories` DOUBLE,
+    `target_weight` DOUBLE,
+    `vip_level` INT DEFAULT 0,
+    `vip_expire_time` TIMESTAMP,
     `role` VARCHAR(20) DEFAULT 'user',
     `create_time` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `update_time` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT uk_username UNIQUE (username)
+    UNIQUE (`username`)
 );
 
 CREATE TABLE IF NOT EXISTS `food` (

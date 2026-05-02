@@ -1,0 +1,77 @@
+{
+  "miniprogramRoot": "dist/",
+  "projectname": "calorimate-miniapp",
+  "description": "CaloriMate 食光机微信小程序",
+  "appid": "wxbbe760953056e112",
+  "setting": {
+    "urlCheck": false,
+    "es6": false,
+    "enhance": false,
+    "postcss": false,
+    "preloadBackgroundData": false,
+    "minified": false,
+    "newFeature": true,
+    "coverView": true,
+    "nodeModules": false,
+    "autoAudits": false,
+    "showShadowRootInWxmlPanel": true,
+    "scopeDataCheck": false,
+    "checkInvalidKey": true,
+    "checkSiteMap": true,
+    "uploadWithSourceMap": true,
+    "compileHotReLoad": false,
+    "babelSetting": {
+      "ignore": [],
+      "disablePlugins": [],
+      "outputPath": ""
+    },
+    "compileWorklet": false,
+    "uglifyFileName": false,
+    "packNpmManually": false,
+    "minifyWXSS": true,
+    "minifyWXML": true,
+    "localPlugins": false,
+    "disableUseStrict": false,
+    "useCompilerPlugins": false,
+    "condition": false,
+    "swc": false,
+    "disableSWC": true
+  },
+  "compileType": "miniprogram",
+  "condition": {},
+  "simulatorPluginLibVersion": {},
+  "packOptions": {
+    "ignore": [
+      {
+        "type": "folder",
+        "value": "node_modules/@vue"
+      },
+      {
+        "type": "folder",
+        "value": "node_modules/@parcel"
+      },
+      {
+        "type": "folder",
+        "value": "node_modules/@swc"
+      },
+      {
+        "type": "folder",
+        "value": "node_modules/webpack"
+      },
+      {
+        "type": "folder",
+        "value": "node_modules/vue-loader"
+      },
+      {
+        "type": "folder",
+        "value": "node_modules/sass-loader"
+      },
+      {
+        "type": "folder",
+        "value": "node_modules/sass"
+      }
+    ],
+    "include": []
+  },
+  "editorSetting": {}
+}

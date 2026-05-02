@@ -1,0 +1,46 @@
+{
+  "name": "calorimate-miniapp",
+  "version": "1.0.0",
+  "private": true,
+  "description": "CaloriMate 食光机微信小程序",
+  "templateInfo": {
+    "name": "vue3",
+    "typescript": true,
+    "css": "sass"
+  },
+  "scripts": {
+    "build:weapp": "taro build --type weapp",
+    "dev:weapp": "npm run build:weapp -- --watch"
+  },
+  "browserslist": [
+    "last 3 versions",
+    "Android >= 4.1",
+    "ios >= 8"
+  ],
+  "author": "",
+  "dependencies": {
+    "@tarojs/components": "4.2.0",
+    "@tarojs/helper": "4.2.0",
+    "@tarojs/plugin-framework-vue3": "4.2.0",
+    "@tarojs/plugin-platform-weapp": "4.2.0",
+    "@tarojs/runtime": "4.2.0",
+    "@tarojs/shared": "4.2.0",
+    "@tarojs/taro": "4.2.0",
+    "vue": "^3.3.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.8.0",
+    "@babel/runtime": "^7.7.7",
+    "@tarojs/cli": "4.2.0",
+    "@tarojs/webpack5-runner": "4.2.0",
+    "@types/webpack-env": "^1.13.6",
+    "@vue/babel-plugin-jsx": "^1.5.0",
+    "babel-preset-taro": "4.2.0",
+    "sass": "^1.63.0",
+    "sass-loader": "^13.3.0",
+    "sharp": "^0.34.5",
+    "typescript": "^5.1.0",
+    "vue-loader": "^17.2.0",
+    "webpack": "^5.88.0"
+  }
+}
