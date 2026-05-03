@@ -1,5 +1,5 @@
 <template>
-  <view class="camera-page">
+  <view class="camera-page page-fade-in">
     <view v-if="isDevtools" class="devtools-tip">
       <text class="devtools-tip-text">当前为模拟器，拍照功能请用真机测试</text>
     </view>
@@ -10,29 +10,13 @@
         <text v-else class="badge-text">👑 会员尊享无限次识别</text>
       </view>
 
-      <view class="viewfinder-wrap" @tap="handleTakePhoto">
-        <view class="pulse-ring pulse-1" />
-        <view class="pulse-ring pulse-2" />
-        <view class="camera-circle">
+      <view class="viewfinder-wrap disabled">
+        <view class="camera-circle disabled-circle">
           <text class="circle-icon">📸</text>
           <text class="circle-title">拍照识别</text>
-          <text class="circle-sub">AI 自动计算卡路里</text>
+          <text class="circle-sub">即将上线，敬请期待</text>
         </view>
-      </view>
-
-      <view class="tips-row">
-        <view class="tip-item">
-          <text class="tip-icon">💡</text>
-          <text class="tip-text">光线充足</text>
-        </view>
-        <view class="tip-item">
-          <text class="tip-icon">🎯</text>
-          <text class="tip-text">画面居中</text>
-        </view>
-        <view class="tip-item">
-          <text class="tip-icon">📐</text>
-          <text class="tip-text">俯拍最佳</text>
-        </view>
+        <view class="dev-badge">待开发</view>
       </view>
 
       <view class="divider">
@@ -56,7 +40,7 @@
           :disabled="!textInput.trim()"
           @tap="parseText"
         >
-          <text v-if="!textLoading">AI 智能解析</text>
+          AI 智能解析
         </button>
       </view>
     </view>
@@ -529,6 +513,23 @@ $radius: 28rpx;
   display: flex;
   align-items: center;
   justify-content: center;
+
+  &.disabled {
+    opacity: 0.6;
+  }
+
+  .dev-badge {
+    position: absolute;
+    top: 20rpx;
+    right: 20rpx;
+    background: rgba(255, 152, 0, 0.9);
+    color: #fff;
+    font-size: 22rpx;
+    font-weight: 600;
+    padding: 8rpx 20rpx;
+    border-radius: 20rpx;
+    z-index: 10;
+  }
 }
 
 .pulse-ring {
@@ -571,6 +572,20 @@ $radius: 28rpx;
 
   &:active {
     transform: scale(0.95);
+  }
+
+  &.disabled-circle {
+    background: radial-gradient(circle at 30% 30%, rgba(150, 150, 150, 0.15), rgba(150, 150, 150, 0.03));
+    border-color: rgba(150, 150, 150, 0.4);
+    box-shadow: none;
+
+    &:active {
+      transform: none;
+    }
+
+    .circle-sub {
+      color: #999;
+    }
   }
 
   .circle-icon {

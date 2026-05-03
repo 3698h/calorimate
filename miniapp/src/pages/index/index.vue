@@ -1,5 +1,5 @@
 <template>
-  <view class="index-page">
+  <view class="index-page page-fade-in">
     <PrivacyPopup @agreed="onPrivacyAgreed" />
 
     <view v-if="status === 'loading'" class="state-wrap loading-wrap fade-in">
@@ -52,7 +52,7 @@
             <view class="ring-track" :style="ringStyle">
               <view class="ring-center">
                 <text class="ring-label">已摄入</text>
-                <text class="ring-value num-font">{{ todayCal }}</text>
+                <text class="ring-value num-font num-bounce" :key="todayCal">{{ todayCal }}</text>
                 <text class="ring-unit">千卡</text>
               </view>
             </view>

@@ -1,5 +1,5 @@
 <template>
-  <view class="food-page">
+  <view class="food-page page-fade-in">
     <PrivacyPopup @agreed="onPrivacyAgreed" />
     <view class="search-header">
       <view class="search-bar">

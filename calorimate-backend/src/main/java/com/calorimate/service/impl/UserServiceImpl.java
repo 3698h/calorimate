@@ -171,7 +171,12 @@ public class UserServiceImpl implements UserService {
         }
 
         if (user.getHeight() == null || user.getWeight() == null || user.getAge() == null || user.getGender() == null) {
-            throw new RuntimeException("用户信息不完整，请先完善身高、体重、年龄、性别");
+            // 用户信息不完整，返回默认值
+            Map<String, Object> result = new HashMap<>();
+            result.put("bmr", 1500);
+            result.put("targetCalories", user.getTargetCalories() != null ? user.getTargetCalories() : 2000);
+            result.put("formula", "默认值（请完善个人信息）");
+            return result;
         }
 
         double height = user.getHeight();

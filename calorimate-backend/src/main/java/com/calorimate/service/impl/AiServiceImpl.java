@@ -95,12 +95,19 @@ public class AiServiceImpl implements AiService {
             totalCalories += log.getCalories();
         }
 
+        // 安全获取用户信息，避免空指针
+        double height = user.getHeight() != null ? user.getHeight() : 170.0;
+        double weight = user.getWeight() != null ? user.getWeight() : 65.0;
+        int age = user.getAge() != null ? user.getAge() : 25;
+        String gender = user.getGender() != null ? user.getGender() : "male";
+        double targetCal = user.getTargetCalories() != null ? user.getTargetCalories() : 2000.0;
+
         String userMessage = String.format(
                 "用户信息：身高%.1fcm 体重%.1fkg 年龄%d岁 性别%s 目标%.0fkcal\n" +
                         "今日饮食：%s\n今日总摄入：%.0fkcal",
-                user.getHeight(), user.getWeight(), user.getAge(),
-                "male".equals(user.getGender()) ? "男" : "女",
-                user.getTargetCalories(),
+                height, weight, age,
+                "male".equals(gender) ? "男" : "女",
+                targetCal,
                 dietSummary.length() > 0 ? dietSummary.toString() : "暂无饮食记录",
                 totalCalories);
 

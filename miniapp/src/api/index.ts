@@ -1,8 +1,7 @@
 import Taro from '@tarojs/taro'
 
-// ⚠️ 真机调试时需要改为局域网IP，例如 http://192.168.x.x:8081（终端运行 ipconfig 查看）
-// ⚠️ 上线前务必改为正式域名
-const baseUrl = 'http://localhost:8081'
+// 本地开发地址（真机调试时改为局域网IP，如 http://192.168.x.x:8081/api）
+const baseUrl = 'http://localhost:8081/api'
 
 const getToken = (): string => Taro.getStorageSync('token') || ''
 
@@ -26,7 +25,7 @@ interface ApiResponse<T = any> {
 }
 
 const checkPrivacy = (url: string): boolean => {
-  if (url === '/api/auth/login') return true
+  if (url === '/auth/login') return true
   return !!Taro.getStorageSync('privacy_agreed')
 }
 
@@ -85,7 +84,7 @@ export function upload<T = any>(url: string, filePath: string, name = 'file', ti
       url: `${baseUrl}${url}`,
       filePath,
       name,
-      header: token ? { Authorization: `Bearer ${token}` } : {},
+      header: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
       timeout,
       success(res) {
         const body = JSON.parse(res.data) as ApiResponse<T>
@@ -111,21 +110,21 @@ export function upload<T = any>(url: string, filePath: string, name = 'file', ti
 
 export const authApi = {
   login: (code: string) =>
-    request<{ token: string }>({ url: '/api/auth/login', method: 'POST', data: { code } }),
+    request<{ token: string }>({ url: '/auth/login', method: 'POST', data: { code } }),
 }
 
 // ========== User API ==========
 
 export const userApi = {
-  getProfile: () => request<any>({ url: '/api/user/info' }),
+  getProfile: () => request<any>({ url: '/user/info' }),
   updateProfile: (data: any) =>
-    request({ url: '/api/user/profile', method: 'PUT', data }),
+    request({ url: '/user/profile', method: 'PUT', data }),
   getDailyTarget: () =>
-    request<{ targetCalories: number; bmr: number; formula: string }>({ url: '/api/user/daily-target' }),
+    request<{ targetCalories: number; bmr: number; formula: string }>({ url: '/user/daily-target' }),
   getRemainFreeTimes: () =>
-    request<number>({ url: '/api/user/remain-free-times' }),
+    request<number>({ url: '/user/remain-free-times' }),
   addFreeTimes: () =>
-    request({ url: '/api/user/add-free-times', method: 'POST' }),
+    request({ url: '/user/add-free-times', method: 'POST' }),
 }
 
 // ========== Food API ==========
@@ -146,12 +145,12 @@ const getMockFoodResult = (keyword: string): any[] => {
 
 export const foodApi = {
   search: (keyword: string) =>
-    request<any[]>({ url: `/api/foods/search?keyword=${encodeURIComponent(keyword)}` }),
+    request<any[]>({ url: `/foods/search?keyword=${encodeURIComponent(keyword)}` }),
   searchExternal: (keyword: string) =>
-    request<any[]>({ url: `/api/foods/search-external?keyword=${encodeURIComponent(keyword)}`, timeout: 5000 })
+    request<any[]>({ url: `/foods/search-external?keyword=${encodeURIComponent(keyword)}`, timeout: 5000 })
       .catch(() => ({ code: 200, msg: 'ok', data: getMockFoodResult(keyword) })),
   importFood: (data: { name: string; category?: string; calories: number; protein?: number; fat?: number; carbs?: number; unit?: string }) =>
-    request<any>({ url: '/api/foods/import', method: 'POST', data }),
+    request<any>({ url: '/foods/import', method: 'POST', data }),
   list: (params?: { name?: string; category?: string; page?: number; size?: number }) => {
     const q = new URLSearchParams()
     if (params?.name) q.append('name', params.name)
@@ -159,7 +158,7 @@ export const foodApi = {
     if (params?.page) q.append('page', String(params.page))
     if (params?.size) q.append('size', String(params.size))
     const qs = q.toString()
-    return request({ url: `/api/food/list${qs ? '?' + qs : ''}` })
+    return request({ url: `/food/list${qs ? '?' + qs : ''}` })
   },
 }
 
@@ -167,26 +166,26 @@ export const foodApi = {
 
 export const recordApi = {
   add: (data: { foodId?: number; foodName: string; calories: number; servings: number; unit?: string; mealType: string }) =>
-    request({ url: '/api/records/add', method: 'POST', data }),
+    request({ url: '/records/add', method: 'POST', data }),
   addAi: (data: { foodName: string; calories: number; protein?: number; fat?: number; carbs?: number; mealType: string }) =>
-    request({ url: '/api/records/add-ai', method: 'POST', data }),
+    request({ url: '/records/add-ai', method: 'POST', data }),
   list: (date?: string) =>
-    request<any>({ url: `/api/diet/log${date ? '?date=' + date : ''}` }),
+    request<any>({ url: `/diet/log${date ? '?date=' + date : ''}` }),
   daily: (date?: string) =>
-    request<any>({ url: `/api/stats/daily${date ? '?date=' + date : ''}` }),
+    request<any>({ url: `/stats/daily${date ? '?date=' + date : ''}` }),
   delete: (id: number) =>
-    request({ url: `/api/diet/log/${id}`, method: 'DELETE' }),
+    request({ url: `/diet/log/${id}`, method: 'DELETE' }),
 }
 
 // ========== AI API ==========
 
 export const aiApi = {
   recognizeFood: (filePath: string) =>
-    upload<any>('/api/ai/recognize-food', filePath),
+    upload<any>('/ai/recognize-food', filePath),
   parse: (userInput: string, mealType?: string) =>
-    request<any>({ url: '/api/ai/parse', method: 'POST', data: { userInput, mealType }, timeout: 60000 }),
+    request<any>({ url: '/ai/parse', method: 'POST', data: { userInput, mealType }, timeout: 60000 }),
   advice: () =>
-    request<any>({ url: '/api/ai/advice', method: 'POST', timeout: 60000 }),
+    request<any>({ url: '/ai/advice', method: 'POST', timeout: 60000 }),
 }
 
 // ========== Pay API ==========
@@ -194,13 +193,13 @@ export const aiApi = {
 export const payApi = {
   prepay: (planType: string, code: string) =>
     request<{ appId: string; timeStamp: string; nonceStr: string; package: string; signType: string; paySign: string }>({
-      url: '/api/pay/prepay',
+      url: '/pay/prepay',
       method: 'POST',
       data: { planType, code },
     }),
   mockPaySuccess: () =>
     request<string>({
-      url: '/api/pay/mock-success',
+      url: '/pay/mock-success',
       method: 'POST',
     }),
 }

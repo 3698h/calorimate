@@ -6,7 +6,10 @@
       "Bash(npx taro *)",
       "Bash(ipconfig)",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8080/api/foods/import)",
-      "Bash(curl *)"
+      "Bash(curl *)",
+      "Bash(mvn spring-boot:run)",
+      "Bash(xargs grep *)",
+      "Bash(ngrok http *)"
     ]
   }
 }

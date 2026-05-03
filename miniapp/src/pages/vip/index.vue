@@ -1,5 +1,5 @@
 <template>
-  <view class="vip-page">
+  <view class="vip-page page-fade-in">
     <PrivacyPopup @agreed="onPrivacyAgreed" />
     <view class="vip-banner">
       <text class="banner-crown">👑</text>

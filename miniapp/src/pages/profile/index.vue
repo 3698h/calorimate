@@ -1,5 +1,5 @@
 <template>
-  <view class="profile-page">
+  <view class="profile-page page-fade-in">
     <PrivacyPopup @agreed="onPrivacyAgreed" />
 
     <!-- 状态遮罩 -->
@@ -152,6 +152,7 @@ const defaultAvatar = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ
 
 const loading = ref(true)
 const error = ref('')
+const hasInitialLoad = ref(false)
 const userInfo = ref<any>({})
 const calYear = ref(new Date().getFullYear())
 const calMonth = ref(new Date().getMonth())
@@ -195,8 +196,8 @@ const changeMonth = (delta: number) => {
 }
 
 // ...数据加载逻辑保持不变...
-const loadData = async () => {
-  loading.value = true
+const loadData = async (silent = false) => {
+  if (!silent) loading.value = true
   error.value = ''
   try {
     const [profileRes, dailyTargetRes] = await Promise.allSettled([
@@ -221,9 +222,10 @@ const loadData = async () => {
     }
     await Promise.all([loadCalendarData(), loadWeekAvg()])
   } catch (e: any) {
-    error.value = e.message || '加载失败'
+    if (!silent) error.value = e.message || '加载失败'
   } finally {
     loading.value = false
+    hasInitialLoad.value = true
   }
 }
 
@@ -294,7 +296,11 @@ const handleLogout = () => {
 const onPrivacyAgreed = () => { loadData() }
 
 onMounted(() => { if (Taro.getStorageSync('privacy_agreed')) loadData() })
-useDidShow(() => { if (Taro.getStorageSync('privacy_agreed')) loadData() })
+useDidShow(() => {
+  if (Taro.getStorageSync('privacy_agreed')) {
+    loadData(hasInitialLoad.value)
+  }
+})
 </script>
 
 <style lang="scss">

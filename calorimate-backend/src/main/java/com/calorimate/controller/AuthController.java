@@ -55,6 +55,9 @@ public class AuthController {
             try {
                 Request request = new Request.Builder().url(url).get().build();
                 try (Response response = httpClient.newCall(request).execute()) {
+                    if (response.body() == null) {
+                        return Result.error("微信登录失败: 响应为空");
+                    }
                     String body = response.body().string();
                     JSONObject json = JSON.parseObject(body);
                     openid = json.getString("openid");

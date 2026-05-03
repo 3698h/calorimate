@@ -56,8 +56,12 @@ button {
   line-height: 1.5;
   outline: none;
   border-radius: 0;
+  transition: transform 0.15s ease;
   &::after {
     border: none;
+  }
+  &:active {
+    transform: scale(0.95);
   }
 }
 
@@ -165,7 +169,16 @@ button {
 
 /* --- 6. 动画关键帧 (Animations) --- */
 
+.page-fade-in {
+  animation: pageFadeIn 0.3s ease-out;
+}
+
 .anim-fade-in { animation: fadeIn 0.4s ease-out forwards; }
+
+.num-bounce {
+  display: inline-block;
+  animation: numBounce 0.3s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+}
 .anim-slide-up { animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
 .anim-breathe { animation: breathe 2s ease-in-out infinite; }
 .anim-scale-in { animation: scaleIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
@@ -179,6 +192,29 @@ button {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+@keyframes pageFadeIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes numBounce {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.2); }
+  60% { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+
+@keyframes tabBounce {
+  0% { transform: scale(1); }
+  30% { transform: scale(0.8); }
+  60% { transform: scale(1.1); }
+  100% { transform: scale(1); }
 }
 
 @keyframes slideUp {

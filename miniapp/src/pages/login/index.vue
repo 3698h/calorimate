@@ -1,5 +1,5 @@
 <template>
-  <view class="login-page">
+  <view class="login-page page-fade-in">
     <view class="login-bg">
       <view class="glow glow-1" />
       <view class="glow glow-2" />
